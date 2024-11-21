@@ -44,7 +44,7 @@ public class CrazyGenerics {
      * @param <T> – actual, min and max type
      */
     @Data
-    public static class Limited<T> {
+    public static class Limited<T extends Number> {
         // todo: refactor class to introduce type param bounded by number and make fields generic numbers
         private final T actual;
         private final T min;
@@ -70,10 +70,10 @@ public class CrazyGenerics {
      *
      * @param <T> – value type
      */
-    public static class MaxHolder<T> { // todo: refactor class to make it generic
-        private Comparable<T> max;
+    public static class MaxHolder<T extends Comparable<? super T>> { // todo: refactor class to make it generic
+        private T max;
 
-        public MaxHolder(Comparable<T> max) {
+        public MaxHolder(T max) {
             this.max = max;
         }
 
@@ -84,12 +84,11 @@ public class CrazyGenerics {
          */
         public void put(T val) {
             if (max.compareTo(val) < 0) {
-                max = (Comparable<T>) val;
+                max = val;
             }
-//            throw new ExerciseNotCompletedException(); // todo: update parameter and implement the method
         }
 
-        public Comparable<T> getMax() {
+        public T getMax() {
             return max;
         }
     }
@@ -100,8 +99,8 @@ public class CrazyGenerics {
      *
      * @param <T> – the type of objects that can be processed
      */
-    interface StrictProcessor<T extends Serializable> { // todo: make it generic
-        void process(Comparable<T> obj);
+    interface StrictProcessor<T extends Serializable & Comparable<? super T>> {
+        void process(T obj);
     }
 
     /**
@@ -111,10 +110,10 @@ public class CrazyGenerics {
      * @param <T> – a type of the entity that should be a subclass of {@link BaseEntity}
      * @param <C> – a type of any collection
      */
-    interface CollectionRepository<T extends BaseEntity, C> { // todo: update interface according to the javadoc
+    interface CollectionRepository<T extends BaseEntity, C extends Collection<T>> {
         void save(T entity);
 
-        Collection<C> getEntityCollection();
+        C getEntityCollection();
     }
 
     /**
@@ -136,7 +135,7 @@ public class CrazyGenerics {
      *
      * @param <E> a type of collection elements
      */
-    interface ComparableCollection<E> extends Collection<E>, Comparable<Collection<?>> { // todo: refactor it to make generic and provide a default impl of compareTo
+    interface ComparableCollection<E> extends Collection<E>, Comparable<Collection<?>> {
         @Override
         default int compareTo(Collection<?> o) {
             return Integer.compare(this.size(), o.size());
@@ -169,7 +168,6 @@ public class CrazyGenerics {
          */
         public static boolean hasNewEntities(Collection<? extends BaseEntity> entities) {
             return entities.stream().anyMatch(e -> e.getUuid() == null);
-//            throw new ExerciseNotCompletedException(); // todo: refactor parameter and implement method
         }
 
         /**
@@ -184,7 +182,6 @@ public class CrazyGenerics {
         public static boolean isValidCollection(Collection<? extends BaseEntity> entities,
                                                 Predicate<? super BaseEntity> validationPredicate) {
             return entities.stream().anyMatch(validationPredicate);
-//            throw new ExerciseNotCompletedException(); // todo: add method parameters and implement the logic
         }
 
         /**
@@ -214,7 +211,7 @@ public class CrazyGenerics {
          * @return optional max value
          */
         // todo: create a method and implement its logic manually without using util method from JDK
-        public static <T> Optional<T> findMax(Iterable<T> elements, Comparator<T> comparator) {
+        public static <T> Optional<T> findMax(Iterable<T> elements, Comparator<? super T> comparator) {
             Iterator<T> iterator = elements.iterator();
             if (!iterator.hasNext()) {
                 return Optional.empty();
@@ -242,6 +239,10 @@ public class CrazyGenerics {
          * @return an entity from the given collection that has the max createdOn value
          */
         // todo: create a method according to JavaDoc and implement it using previous method
+        public static <T extends BaseEntity> T findMostRecentlyCreatedEntity(Collection<T> entities) {
+            return findMax(entities, CREATED_ON_COMPARATOR)
+                    .orElseThrow();
+        }
 
         /**
          * An util method that allows to swap two elements of any list. It changes the list so the element with the index
@@ -255,7 +256,13 @@ public class CrazyGenerics {
         public static void swap(List<?> elements, int i, int j) {
             Objects.checkIndex(i, elements.size());
             Objects.checkIndex(j, elements.size());
-            throw new ExerciseNotCompletedException(); // todo: complete method implementation 
+            swapHelper(elements, i, j);
+        }
+
+        private static <T> void swapHelper(List<T> elements, int i, int j) {
+            T temp = elements.get(i);
+            elements.set(i, elements.get(j));
+            elements.set(j, temp);
         }
 
     }
